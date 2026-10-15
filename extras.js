@@ -175,7 +175,6 @@ function makePDF() {
     ['Cliente / referencia', x.client || '—'], ['Ubicación', x.location || '—'],
     ['Cubierta y altura', `${x.roof} · +${nf(num(x.roofHeight), 1)} m`], ['Sombreado / A/C', `${x.shade} · ${x.ac}`],
     ['Módulo / rendimiento', `${nf(num(x.panelW), 0)} Wp · ${nf(num(x.panelArea), 2)} m² · ${nf(num(x.yield), 2)} kWh/kWp/día`],
-    ['Rutas de cable', `CC +${nf(num(x.cableExtra), 0)} m más azotea · CA ${nf(num(x.runAC), 0)} m`],
   ];
   const cellW = (CW - 8) / 2;
   for (let i = 0; i < details.length; i += 2) {
