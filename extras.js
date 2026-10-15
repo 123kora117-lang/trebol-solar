@@ -172,23 +172,6 @@ function makePDF() {
     y += h;
   }
   y += 3;
-  // Tarjetas de resumen, iguales a las de la app.
-  const cards = [
-    ['PANELES MÍNIMOS', `${c.n} módulos`, `${nf(c.n * num(x.panelW) / 1000, 2)} kWp instalados`, C.green, '#FFFFFF'],
-    ['CONSUMO PROYECTADO', `${nf(c.future, 0)} kWh/año`, `${nf(c.daily, 1)} kWh/día promedio actual`, '#3D4934', '#FFFFFF'],
-    [`ESCENARIO · ${c.scenario} PANELES`, `${nf(c.gen, 0)} kWh/año`, `${c.margin >= 0 ? '+' : ''}${nf(c.margin * 100, 0)}% margen estimado`, '#6E765F', '#FFFFFF'],
-    ['ÁREA ESTIMADA DE MÓDULOS', `${nf(c.roofArea, 1)} m²`, `incluye holgura de ${nf(num(x.clearancePct), 0)}%`, '#E9E7E2', C.text],
-  ];
-  const gap = 3, cardW = (CW - gap * 3) / 4, cardH = 25;
-  need(cardH + 6);
-  cards.forEach(([label, value, sub, bg, color], i) => {
-    const left = M + i * (cardW + gap);
-    fill(bg); d.roundedRect(left, y - 2, cardW, cardH, 1.5, 1.5, 'F');
-    font(5.6, 'normal', color); d.text(d.splitTextToSize(label, cardW - 7)[0], left + 3.5, y + 3.5);
-    font(12.5, 'bold', color); d.text(value, left + 3.5, y + 12);
-    font(6.3, 'normal', color); d.text(d.splitTextToSize(sub, cardW - 7)[0], left + 3.5, y + 18.5);
-  });
-  y += cardH + 6;
   need(43); title('Resultado del escenario');
   const metrics = [
     ['PANELES SELECCIONADOS', `${c.scenario} paneles`], ['POTENCIA DC', `${nf(c.scenarioKwp, 2)} kWp`],
@@ -221,6 +204,23 @@ function makePDF() {
     ln(C.line); d.setLineWidth(0.2); d.line(M, y + 3, R, y + 3); y += 8.5;
   });
   y += 4;
+  // Tarjetas de resumen, iguales a las de la app.
+  const cards = [
+    ['PANELES MÍNIMOS', `${c.n} módulos`, `${nf(c.n * num(x.panelW) / 1000, 2)} kWp instalados`, C.green, '#FFFFFF'],
+    ['CONSUMO PROYECTADO', `${nf(c.future, 0)} kWh/año`, `${nf(c.daily, 1)} kWh/día promedio actual`, '#3D4934', '#FFFFFF'],
+    [`ESCENARIO · ${c.scenario} PANELES`, `${nf(c.gen, 0)} kWh/año`, `${c.margin >= 0 ? '+' : ''}${nf(c.margin * 100, 0)}% margen estimado`, '#6E765F', '#FFFFFF'],
+    ['ÁREA ESTIMADA DE MÓDULOS', `${nf(c.roofArea, 1)} m²`, `incluye holgura de ${nf(num(x.clearancePct), 0)}%`, '#E9E7E2', C.text],
+  ];
+  const gap = 3, cardW = (CW - gap * 3) / 4, cardH = 25;
+  need(cardH + 6);
+  cards.forEach(([label, value, sub, bg, color], i) => {
+    const left = M + i * (cardW + gap);
+    fill(bg); d.roundedRect(left, y - 2, cardW, cardH, 1.5, 1.5, 'F');
+    font(5.6, 'normal', color); d.text(d.splitTextToSize(label, cardW - 7)[0], left + 3.5, y + 3.5);
+    font(12.5, 'bold', color); d.text(value, left + 3.5, y + 12);
+    font(6.3, 'normal', color); d.text(d.splitTextToSize(sub, cardW - 7)[0], left + 3.5, y + 18.5);
+  });
+  y += cardH + 6;
   const scenarios = x.scenarios || [], widths = [24, 30, 40, 43, CW - 137];
   need(Math.min(20 + scenarios.length * 8, BOTTOM - 37)); title('Escenarios comparados');
   const tableHead = () => {
