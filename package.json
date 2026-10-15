@@ -1,0 +1,9 @@
+{
+  "name": "trebol-solar-copia",
+  "private": true,
+  "type": "commonjs",
+  "scripts": {
+    "start": "node serve.cjs",
+    "test": "node --test tests/solar-math.test.cjs"
+  }
+}
