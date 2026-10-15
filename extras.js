@@ -101,6 +101,14 @@ function renderCatalog() {
 
 function initExtras() {
   const q = s => document.querySelector(s);
+  q('#greenBoldBtn').onclick = () => {
+    const ta = q('#pdfText'), a = ta.selectionStart, b = ta.selectionEnd, sel = ta.value.slice(a, b);
+    const inner = sel || 'texto';
+    ta.focus();
+    ta.setRangeText('**' + inner + '**', a, b, 'end');
+    if (!sel) ta.setSelectionRange(a + 2, a + 2 + inner.length);
+    ta.dispatchEvent(new Event('input', { bubbles: true }));
+  };
   q('#finalPriceReset').onclick = () => { p().finalPrice = ''; save(); render(); };
   q('#contOn').onchange = e => { p().contingencyOn = e.target.checked; save(); render(); };
   q('#ivaOn').onchange = e => { p().ivaOn = e.target.checked; save(); render(); };
@@ -277,19 +285,49 @@ function makePDF() {
     nextPage();
     const size = 9, lineH = size * 0.3528 * 1.3;
     const heading = 'NOTAS, CONDICIONES Y ALCANCE';
-    font(size);
+    // **texto** se imprime en verde y negritas; un ** sin cerrar se deja tal cual.
+    const runFont = bold => font(size, bold ? 'bold' : 'normal', bold ? C.green : C.text);
+    const width = (text, bold) => { runFont(bold); return d.getTextWidth(text); };
+    const parseRuns = line => {
+      const parts = line.split('**');
+      if (parts.length % 2 === 0) parts.splice(-2, 2, parts[parts.length - 2] + '**' + parts[parts.length - 1]);
+      return parts.map((text, i) => ({ text, bold: i % 2 === 1 })).filter(r => r.text);
+    };
+    const wrapRuns = runs => {
+      const out = []; let cur = [], w = 0;
+      const push = () => {
+        while (cur.length && !cur[cur.length - 1].text.trim()) cur.pop();
+        out.push(cur.reduce((acc, r) => { const prev = acc[acc.length - 1]; if (prev && prev.bold === r.bold) prev.text += r.text; else acc.push({ ...r }); return acc; }, []));
+        cur = []; w = 0;
+      };
+      runs.forEach(({ text, bold }) => text.split(/(\s+)/).filter(Boolean).forEach(token => {
+        const space = !token.trim();
+        if (space && !cur.length) return;
+        runFont(bold);
+        const pieces = space ? [token] : d.splitTextToSize(token, CW);
+        pieces.forEach(piece => {
+          const pw = width(piece, bold);
+          if (!space && cur.length && w + pw > CW) push();
+          cur.push({ text: piece, bold }); w += pw;
+        });
+      }));
+      if (cur.length || !out.length) push();
+      return out;
+    };
     const lines = projectText.replace(/\r\n?/g, '\n').split('\n')
-      .flatMap(line => line ? d.splitTextToSize(line, CW) : ['']);
-    while (lines.length && !lines[0].trim()) lines.shift();
-    while (lines.length && !lines[lines.length - 1].trim()) lines.pop();
+      .flatMap(line => line.trim() ? wrapRuns(parseRuns(line)) : [[]]);
+    while (lines.length && !lines[0].length) lines.shift();
+    while (lines.length && !lines[lines.length - 1].length) lines.pop();
     title(heading);
     lines.forEach(line => {
-      if (!line.trim() && y + lineH + 2 > BOTTOM) return;
+      if (!line.length && y + lineH + 2 > BOTTOM) return;
       if (y + lineH + 2 > BOTTOM) {
         nextPage();
         title(`${heading} · continuación`);
       }
-      font(size); d.text(line, M, y); y += lineH;
+      let left = M;
+      line.forEach(({ text, bold }) => { runFont(bold); d.text(text, left, y); left += d.getTextWidth(text); });
+      y += lineH;
     });
   }
   const pageCount = d.getNumberOfPages();

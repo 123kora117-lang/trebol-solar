@@ -28,7 +28,8 @@
     <p class="subtle">Contenido opcional para el final del PDF. Se guarda con este proyecto; si está vacío, no se incluye.</p>
     <div class="pdf-text-fields">
      <label for="pdfText">Texto para el documento<textarea id="pdfText" data-field="pdfText" rows="8" aria-labelledby="pdfTextTitle" aria-describedby="pdfTextHelp" placeholder="Escribe aquí las notas, condiciones y alcance de este proyecto…"></textarea></label>
-     <p id="pdfTextHelp" class="subtle">Ejemplo: observaciones, vigencia de la propuesta, actividades incluidas y trabajos excluidos. Puedes separar el contenido con saltos de línea.</p>
+     <p id="pdfTextHelp" class="subtle">Ejemplo: observaciones, vigencia de la propuesta, actividades incluidas y trabajos excluidos. Puedes separar el contenido con saltos de línea. Para resaltar en <b class="green-bold">verde y negritas</b>, escribe el texto entre dos asteriscos: <code>**así**</code>, o selecciónalo y usa el botón.</p>
+     <button class="btn ghost" type="button" id="greenBoldBtn" title="Encierra el texto seleccionado entre ** **"><b class="green-bold">B</b> Verde y negritas</button>
     </div>
     <button class="btn primary" type="button" onclick="document.getElementById('pdfBtn').click()">Exportar PDF</button>
    </section></section>
