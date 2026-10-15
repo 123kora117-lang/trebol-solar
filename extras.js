@@ -56,6 +56,7 @@ function renderTotals(x) {
   $('#finalPriceHint').textContent = manual
     ? `El PDF mostrará ${money(x.finalPrice)} como costo final (total estimado: ${money(b.total)}).`
     : `Vacío: el PDF usa el total estimado, ${money(b.total)}. Escribe otra cantidad para cambiarlo.`;
+  $('#finalPriceHint').textContent += x.ivaOn ? ` En el PDF dirá "IVA incluido (${fmt(num(x.ivaPct, 16), 0)}%)".` : ' En el PDF dirá "No incluye IVA".';
   $('#finalPriceReset').hidden = !manual;
   $('#contOn').checked = x.contingencyOn !== false; $('#ivaOn').checked = !!x.ivaOn;
   $('#totals').innerHTML = `Subtotal materiales: ${money(b.subtotal)}<br>${x.contingencyOn !== false ? `Contingencia (${fmt(num(x.contingencyPct), 0)}%): ${money(b.contingency)}<br>` : ''}${x.ivaOn ? `IVA (${fmt(num(x.ivaPct, 16), 0)}%): ${money(b.iva)}<br>` : ''}<strong>Total estimado: ${money(b.total)}</strong>`;
@@ -245,13 +246,16 @@ function makePDF() {
     ln(C.line); d.setLineWidth(0.2); d.line(M, y + 4, R, y + 4); y += 8;
   });
   y += 8;
-  need(34); title('Costo final');
-  fill(C.pale); d.rect(M, y - 2, CW, 22, 'F'); fill(C.gold); d.rect(M, y - 2, 1, 22, 'F');
+  need(36); title('Costo final');
+  fill(C.pale); d.rect(M, y - 2, CW, 25, 'F'); fill(C.gold); d.rect(M, y - 2, 1, 25, 'F');
   font(7, 'bold', C.muted); d.text('COSTO FINAL DEL SISTEMA', M + 5, y + 4);
   font(8, 'normal', C.muted);
-  d.text(`${c.scenario} paneles · ${nf(c.scenarioKwp, 2)} kWp · moneda nacional${x.ivaOn ? ' · IVA incluido' : ''}`, M + 5, y + 13);
-  font(20, 'bold', C.green); d.text(money(finalPrice(x)), R - 5, y + 11, { align: 'right' });
-  y += 28;
+  d.text(`${c.scenario} paneles · ${nf(c.scenarioKwp, 2)} kWp · moneda nacional`, M + 5, y + 13);
+  font(20, 'bold', C.green); d.text(money(finalPrice(x)), R - 5, y + 10, { align: 'right' });
+  // Leyenda de IVA según la casilla "IVA" de la lista de materiales.
+  font(8.5, 'bold', x.ivaOn ? C.green : C.muted);
+  d.text(x.ivaOn ? `IVA incluido (${nf(num(x.ivaPct, 16), 0)}%)` : 'No incluye IVA', R - 5, y + 17.5, { align: 'right' });
+  y += 31;
   const projectText = typeof x.pdfText === 'string' ? x.pdfText : '';
   if (projectText.trim()) {
     nextPage();
