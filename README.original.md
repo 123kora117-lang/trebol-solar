@@ -1,4 +1,4 @@
-# Trébol Estudio · Solar residencial (PWA)
+# Trébol Solar · Solar residencial (PWA)
 
 Continuación del proyecto `trebol-solar-pwa`: mismo diseño y esquema de instalación, ahora con comparación de escenarios,
 cantidades automáticas, catálogo editable, IVA/contingencia opcionales, PDF y CSV, e instalación en Replit.

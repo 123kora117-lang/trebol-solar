@@ -124,7 +124,7 @@ function makePDF() {
         d.addImage(x.logo, M, 8, pr.width * scale, pr.height * scale);
       } catch {}
     } else {
-      font(11, 'bold', C.green); d.text('TRÉBOL ESTUDIO', M, 14);
+      font(11, 'bold', C.green); d.text('TRÉBOL SOLAR', M, 14);
       font(7, 'normal', C.muted); d.text('ENERGÍA RESIDENCIAL · PV', M, 19);
     }
     font(8, 'bold', C.green); d.text('REPORTE TÉCNICO', R, 10, { align: 'right' });
@@ -258,7 +258,7 @@ function makePDF() {
   const pageCount = d.getNumberOfPages();
   for (let i = 1; i <= pageCount; i++) {
     d.setPage(i); ln(C.line); d.setLineWidth(0.3); d.line(M, 265, R, 265);
-    font(7, 'normal', C.muted); d.text('Trébol Estudio · Dimensionamiento solar preliminar', M, 271);
+    font(7, 'normal', C.muted); d.text('Trébol Solar · Dimensionamiento solar preliminar', M, 271);
     d.text(`Página ${i} de ${pageCount}`, R, 271, { align: 'right' });
   }
   d.save(slug() + '.pdf');
