@@ -1,4 +1,4 @@
-const CACHE='trebol-solar-v12';
+const CACHE='trebol-solar-v13';
 const FILES=[
   './','./index.html','./styles.css','./app.js','./extras.js','./solar-math.js',
   './manifest.webmanifest','./vendor/jspdf.umd.min.js',

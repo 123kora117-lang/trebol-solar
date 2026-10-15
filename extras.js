@@ -280,6 +280,23 @@ function makePDF() {
   font(8.5, 'bold', x.ivaOn ? C.green : C.muted);
   d.text(x.ivaOn ? `IVA incluido (${nf(num(x.ivaPct, 16), 0)}%)` : 'No incluye IVA', R - 5, y + 17.5, { align: 'right' });
   y += 31;
+  const days = Math.round(num(x.validityDays));
+  if (days > 0) {
+    let until = '';
+    if (/^\d{4}-\d{2}-\d{2}$/.test(x.date || '')) {
+      const t = new Date(x.date + 'T00:00:00Z'); t.setUTCDate(t.getUTCDate() + days);
+      until = ` (válida hasta el ${t.toLocaleDateString('es-MX', { day: 'numeric', month: 'long', year: 'numeric', timeZone: 'UTC' })})`;
+    }
+    need(10);
+    const label = 'Vigencia: ';
+    font(8.5, 'bold', C.green); d.text(label, M, y);
+    const labelW = d.getTextWidth(label);
+    font(8.5, 'normal', C.text);
+    const text = `esta cotización tiene una duración de ${days} ${days === 1 ? 'día' : 'días'} a partir de su entrega${until}.`;
+    const lines = d.splitTextToSize(text, CW - labelW);
+    lines.forEach((line, i) => { d.text(line, M + (i ? 0 : labelW), y); y += 4.2; });
+    y += 5;
+  }
   const projectText = typeof x.pdfText === 'string' ? x.pdfText : '';
   if (projectText.trim()) {
     nextPage();
