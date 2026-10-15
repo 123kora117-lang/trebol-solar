@@ -44,18 +44,27 @@ function renderCalc(x, c) {
   Cable CC total = cable por cadena × ${nf(num(x.strings, 2), 0)} cadenas. Cable CA = ${nf(num(x.runAC), 0)} m × reserva × 3 conductores. Canalización = azotea + ruta CC + ruta CA, con reserva.<br>
   El rendimiento específico resume pérdidas; no es una simulación del sitio. La cobertura es energía anual indicativa: no predice cargos, excedentes ni ahorro en el recibo CFE. Valida strings, voltajes, conductores, protecciones, estructura e interconexión con fichas técnicas y un profesional.`;
 }
+// Costo capturado por escenario (por número de paneles); vacío = calculado.
+function manualScenarioCost(x, count) { return num((x.scenarioCosts || {})[count]); }
 function finalPrice(x) {
   const manual = num(x.finalPrice);
-  return manual > 0 ? manual : SolarMath.boq(x).total;
+  if (manual > 0) return manual;
+  const sel = manualScenarioCost(x, num(x.scenarioPanels));
+  return sel > 0 ? sel : SolarMath.boq(x).total;
+}
+function scenarioCost(x, count) {
+  const manual = manualScenarioCost(x, count);
+  if (manual > 0) return manual;
+  return num(count) === num(x.scenarioPanels) ? finalPrice(x) : SolarMath.boq(x, count).total;
 }
 function renderTotals(x) {
   const b = SolarMath.boq(x);
   const fp = $('#finalPrice'), manual = num(x.finalPrice) > 0;
-  fp.placeholder = String(Math.round(b.total));
+  fp.placeholder = String(Math.round(finalPrice(x)));
   if (!manual && document.activeElement !== fp) fp.value = '';
   $('#finalPriceHint').textContent = manual
     ? `El PDF mostrará ${money(x.finalPrice)} como costo final (total estimado: ${money(b.total)}).`
-    : `Vacío: el PDF usa el total estimado, ${money(b.total)}. Escribe otra cantidad para cambiarlo.`;
+    : `Vacío: el PDF usa el costo del escenario seleccionado (${num(x.scenarioPanels)} paneles), ${money(finalPrice(x))}. Escribe otra cantidad para cambiarlo.`;
   $('#finalPriceHint').textContent += x.ivaOn ? ` En el PDF dirá "IVA incluido (${fmt(num(x.ivaPct, 16), 0)}%)".` : ' En el PDF dirá "No incluye IVA".';
   $('#finalPriceReset').hidden = !manual;
   $('#contOn').checked = x.contingencyOn !== false; $('#ivaOn').checked = !!x.ivaOn;
@@ -76,6 +85,7 @@ function renderScenarios(x) {
   $('#scenarioBody').innerHTML = (x.scenarios || []).map((n, i) => { const s = SolarMath.scenarioStats(x, n), b = SolarMath.boq(x, n);
     return `<tr class="${n === num(x.scenarioPanels) ? 'sel' : ''}"><td><input class="qty-input" type="number" min="1" step="1" data-sc="${i}" value="${n}"></td><td>${nf(s.kWp, 2)}</td><td>${nf(s.genYear, 0)}</td>
     <td>${pc(s.coverage)}<div class="cov"><i style="width:${Math.min(100, s.coverage * 100)}%"></i></div></td><td>${nf(s.margin, 0)}</td><td>${nf(s.roofArea, 1)}</td><td>${nf(s.dcacActual, 2)}</td><td>${money(b.subtotal)}</td>
+    <td><input class="price-input" type="number" min="0" step="1" data-scost="${n}" placeholder="${Math.round(scenarioCost({ ...x, scenarioCosts: {} , finalPrice: n === num(x.scenarioPanels) ? x.finalPrice : '' }, n))}" value="${manualScenarioCost(x, n) > 0 ? manualScenarioCost(x, n) : ''}" title="Vacío = costo calculado"></td>
     <td><span class="flag ${s.covers ? 'ok' : ''}">${s.covers ? 'cubre' : 'no cubre'}</span></td><td class="nowrap"><button class="btn ghost" data-use="${n}">Usar</button> <button class="remove-line" data-rmsc="${i}" title="Quitar">×</button></td></tr>`; }).join('');
   $('#scenarioHint').textContent = `Mínimo calculado: ${c.n} paneles. El costo recalcula las cantidades automáticas; las manuales se conservan.`;
 }
@@ -96,6 +106,8 @@ function initExtras() {
   q('#ivaOn').onchange = e => { p().ivaOn = e.target.checked; save(); render(); };
   q('#addSc').onclick = () => { const x = p(); x.scenarios.push(Math.max(...x.scenarios, num(x.scenarioPanels)) + 1); save(); render(); };
   q('#scenarioBody').addEventListener('change', e => { if (e.target.dataset.sc === undefined) return; p().scenarios[+e.target.dataset.sc] = Math.max(1, Math.round(num(e.target.value, 1))); save(); render(); });
+  q('#scenarioBody').addEventListener('change', e => { const n = e.target.dataset.scost; if (n === undefined) return; const x = p(), v = num(e.target.value);
+    x.scenarioCosts = x.scenarioCosts || {}; if (v > 0) x.scenarioCosts[n] = v; else delete x.scenarioCosts[n]; save(); render(); });
   q('#scenarioBody').addEventListener('click', e => { const x = p(), d = e.target.dataset;
     if (d.use) { x.scenarioPanels = +d.use; save(); setDefaults(); } else if (d.rmsc !== undefined) { x.scenarios.splice(+d.rmsc, 1); save(); render(); } });
   q('#materialsBody').addEventListener('click', e => { const a = e.target.closest('[data-auto]'); if (!a) return; e.preventDefault(); p().materials[+a.dataset.auto].manual = false; save(); render(); });
@@ -222,7 +234,7 @@ function makePDF() {
     font(6.3, 'normal', color); d.text(d.splitTextToSize(sub, cardW - 7)[0], left + 3.5, y + 18.5);
   });
   y += cardH + 6;
-  const scenarios = x.scenarios || [], widths = [24, 30, 40, 43, CW - 137];
+  const scenarios = x.scenarios || [], widths = [22, 26, 32, 36, 28, CW - 144];
   need(Math.min(20 + scenarios.length * 8, BOTTOM - 37)); title('Escenarios comparados');
   const tableHead = () => {
     fill(C.pale); d.rect(M, y - 4, CW, 9, 'F');
@@ -231,6 +243,7 @@ function makePDF() {
     ['Paneles', 'kWp', 'kWh/año', 'Cobertura meta', 'Azotea m²'].forEach((text, i) => {
       d.text(text, left + 3, y + 1); left += widths[i];
     });
+    d.text('Costo', R - 3, y + 1, { align: 'right' });
     y += 9;
   };
   tableHead();
@@ -243,9 +256,12 @@ function makePDF() {
     [count, nf(q.kWp, 2), nf(q.genYear, 0), pc(q.coverage), nf(q.roofArea, 1)].forEach((value, i) => {
       d.text(String(value), left + 3, y + 1); left += widths[i];
     });
+    d.text(money(scenarioCost(x, count)), R - 3, y + 1, { align: 'right' });
     ln(C.line); d.setLineWidth(0.2); d.line(M, y + 4, R, y + 4); y += 8;
   });
-  y += 8;
+  font(7.5, 'normal', C.muted);
+  d.text(`Costos en moneda nacional · ${x.ivaOn ? `IVA incluido (${nf(num(x.ivaPct, 16), 0)}%)` : 'No incluyen IVA'}`, R - 3, y + 1, { align: 'right' });
+  y += 10;
   need(36); title('Costo final');
   fill(C.pale); d.rect(M, y - 2, CW, 25, 'F'); fill(C.gold); d.rect(M, y - 2, 1, 25, 'F');
   font(7, 'bold', C.muted); d.text('COSTO FINAL DEL SISTEMA', M + 5, y + 4);
