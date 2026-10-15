@@ -44,8 +44,19 @@ function renderCalc(x, c) {
   Cable CC total = cable por cadena × ${nf(num(x.strings, 2), 0)} cadenas. Cable CA = ${nf(num(x.runAC), 0)} m × reserva × 3 conductores. Canalización = azotea + ruta CC + ruta CA, con reserva.<br>
   El rendimiento específico resume pérdidas; no es una simulación del sitio. La cobertura es energía anual indicativa: no predice cargos, excedentes ni ahorro en el recibo CFE. Valida strings, voltajes, conductores, protecciones, estructura e interconexión con fichas técnicas y un profesional.`;
 }
+function finalPrice(x) {
+  const manual = num(x.finalPrice);
+  return manual > 0 ? manual : SolarMath.boq(x).total;
+}
 function renderTotals(x) {
   const b = SolarMath.boq(x);
+  const fp = $('#finalPrice'), manual = num(x.finalPrice) > 0;
+  fp.placeholder = String(Math.round(b.total));
+  if (!manual && document.activeElement !== fp) fp.value = '';
+  $('#finalPriceHint').textContent = manual
+    ? `El PDF mostrará ${money(x.finalPrice)} como costo final (total estimado: ${money(b.total)}).`
+    : `Vacío: el PDF usa el total estimado, ${money(b.total)}. Escribe otra cantidad para cambiarlo.`;
+  $('#finalPriceReset').hidden = !manual;
   $('#contOn').checked = x.contingencyOn !== false; $('#ivaOn').checked = !!x.ivaOn;
   $('#totals').innerHTML = `Subtotal materiales: ${money(b.subtotal)}<br>${x.contingencyOn !== false ? `Contingencia (${fmt(num(x.contingencyPct), 0)}%): ${money(b.contingency)}<br>` : ''}${x.ivaOn ? `IVA (${fmt(num(x.ivaPct, 16), 0)}%): ${money(b.iva)}<br>` : ''}<strong>Total estimado: ${money(b.total)}</strong>`;
   $('#provNote').innerHTML = `<span class="flag">${b.provisional} de ${b.count} precios provisionales</span> Son referencias editables, no precios de mercado vigentes ni cotizaciones. Marca "Verificado" solo con fuente (URL) y fecha de revisión.`;
@@ -79,6 +90,7 @@ function renderCatalog() {
 
 function initExtras() {
   const q = s => document.querySelector(s);
+  q('#finalPriceReset').onclick = () => { p().finalPrice = ''; save(); render(); };
   q('#contOn').onchange = e => { p().contingencyOn = e.target.checked; save(); render(); };
   q('#ivaOn').onchange = e => { p().ivaOn = e.target.checked; save(); render(); };
   q('#addSc').onclick = () => { const x = p(); x.scenarios.push(Math.max(...x.scenarios, num(x.scenarioPanels)) + 1); save(); render(); };
@@ -216,9 +228,16 @@ function makePDF() {
     ln(C.line); d.setLineWidth(0.2); d.line(M, y + 4, R, y + 4); y += 8;
   });
   y += 8;
+  need(34); title('Costo final');
+  fill(C.pale); d.rect(M, y - 2, CW, 22, 'F'); fill(C.gold); d.rect(M, y - 2, 1, 22, 'F');
+  font(7, 'bold', C.muted); d.text('COSTO FINAL DEL SISTEMA', M + 5, y + 4);
+  font(8, 'normal', C.muted);
+  d.text(`${c.scenario} paneles · ${nf(c.scenarioKwp, 2)} kWp · moneda nacional${x.ivaOn ? ' · IVA incluido' : ''}`, M + 5, y + 13);
+  font(20, 'bold', C.green); d.text(money(finalPrice(x)), R - 5, y + 11, { align: 'right' });
+  y += 28;
   const projectText = typeof x.pdfText === 'string' ? x.pdfText : '';
   if (projectText.trim()) {
-    y += 5;
+    nextPage();
     const size = 9, lineH = size * 0.3528 * 1.3;
     const heading = 'NOTAS, CONDICIONES Y ALCANCE';
     font(size);
@@ -226,7 +245,7 @@ function makePDF() {
       .flatMap(line => line ? d.splitTextToSize(line, CW) : ['']);
     while (lines.length && !lines[0].trim()) lines.shift();
     while (lines.length && !lines[lines.length - 1].trim()) lines.pop();
-    need(9 + lineH * Math.min(2, lines.length) + 2); title(heading);
+    title(heading);
     lines.forEach(line => {
       if (!line.trim() && y + lineH + 2 > BOTTOM) return;
       if (y + lineH + 2 > BOTTOM) {
